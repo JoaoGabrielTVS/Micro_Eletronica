@@ -63,12 +63,15 @@ void LedEBotaoDec();
 void AlternarLedBotao();
 void LedBotaoContador();
 void ContagemBinaria(int contador);
-void matriz();
 
 void DisplaySeteSegHexa();
 void DisplaySeteSegHexa2D();
 void Genius();
 void SensorUltrassonico();
+void MotorDC();
+void MicroServomotor();
+
+int contador = 0;
 
 
 /* USER CODE END PFP */
@@ -86,28 +89,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	GPIO_Clock_Enable(GPIOD);
-	GPIO_Pin_Mode(GPIOD, PIN_0, INPUT);
-	GPIO_Pin_Mode(GPIOD, PIN_1, INPUT);
-	GPIO_Pin_Mode(GPIOD, PIN_2, INPUT);
-	GPIO_Pin_Mode(GPIOD, PIN_3, INPUT);
-
-	GPIO_Resistor_Enable(GPIOD, PIN_0, PULL_UP);
-	GPIO_Resistor_Enable(GPIOD, PIN_1, PULL_UP);
-	GPIO_Resistor_Enable(GPIOD, PIN_2, PULL_UP);
-	GPIO_Resistor_Enable(GPIOD, PIN_3, PULL_UP);
-
-	GPIO_Pin_Mode(GPIOD, PIN_4, OUTPUT);
-	GPIO_Pin_Mode(GPIOD, PIN_5, OUTPUT);
-	GPIO_Pin_Mode(GPIOD, PIN_6, OUTPUT);
-	GPIO_Pin_Mode(GPIOD, PIN_7, OUTPUT);
-
-	int tamanho = 0;
-	int entrada = 0;
-
-	uint16_t sequencia[20];
-	uint16_t numero;
-
 
   /* USER CODE END 1 */
 
@@ -135,14 +116,90 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 	Utility_Init();
-//	LCD_Init(4, 20);
+	USART1_Init(); // Permite utilizar prints
+//========================Questão 9 sobre sistemas===============================
+	GPIO_Clock_Enable(GPIOA);
+	 GPIO_Clock_Enable(GPIOB);
+	 GPIO_Pin_Mode(GPIOB, PIN_0, INPUT);
+	 GPIO_Pin_Mode(GPIOB, PIN_1, INPUT);
+	 GPIO_Resistor_Enable(GPIOB, PIN_0, PULL_DOWN);
+	 GPIO_Resistor_Enable(GPIOB, PIN_1, PULL_DOWN);
+
+	 EXTI_Config(EXTI0, GPIOB, RISING_EDGE);
+	 EXTI_Config(EXTI1, GPIOB, RISING_EDGE);
+
+	 NVIC_SetPriority(EXTI0_IRQn, 0);
+	 NVIC_EnableIRQ  (EXTI0_IRQn);
+
+
+	 NVIC_SetPriority(EXTI1_IRQn, 0);
+	 NVIC_EnableIRQ  (EXTI1_IRQn);
 
 
 
-//	GPIO_Pin_Mode(GPIOE, PIN_0, INPUT);
-//	GPIO_Resistor_Enable(GPIOE, PIN_0, PULL_UP);
-//	GPIO_Pin_Mode(GPIOE, PIN_4, OUTPUT);
 
+
+  // Habilita o clock do GPIOA //aqui é da questão 8
+
+	   // GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	    // Configura PA5 como saída (exemplo com o LED da Nucleo-F4)
+	    //GPIO_Pin_Mode(GPIOA, PIN_3, OUTPUT);
+	    //HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+
+	// Configura PA1 como output PWM do TIM5_CH2
+
+
+	    GPIO_Pin_Mode(GPIOA, PIN_1, ALTERNATE);
+	    GPIO_Pin_Mode(GPIOA,PIN_4,ALTERNATE);
+	    GPIO_Alternate_Function(GPIOA, PIN_1, AF2);
+
+	    // Configura TIM5
+	    //Aqui é da questão 8
+
+	    RCC->APB1ENR |= RCC_APB1ENR_TIM5EN;
+	    TIM5->PSC   = 8400 - 1;   // 1 tick = 1 ms
+	    TIM5->ARR   = 10000  - 1;   // período = 1000 ms = 1 Hz
+	    TIM5->CCR2  =  5000;         // duty = 500 ms (50%)
+	    TIM5->CCMR1 = (TIM5->CCMR1 & ~(0b111 << 12)) | (6 << 12);  // PWM1
+	    TIM5->CCER |= TIM_CCER_CC2E;
+	    TIM5->CR1  |= TIM_CR1_CEN;
+	    RCC->APB1ENR |= RCC_APB1ENR_DACEN; //habilita o clock da interface digital do dac
+	    DAC->CR |= DAC_CR_EN1;//habilita o canal 1 do dac
+
+
+
+	  // Sobe de 0 até 4095 (12 bits)
+
+	    //aqui a questão 1 ======== e questão 9
+
+	//GPIO_Pin_Mode(GPIOA, PIN_4, ANALOG);
+
+
+	//ADC_Init(ADC1, SINGLE_CHANNEL, DAC_RES_12BITS);
+	//ADC_SingleChannel(ADC1, ADC_IN0);
+
+	//DAC_Init1(DAC_CHANNEL1);
+
+
+
+
+
+	GPIO_Clock_Enable(GPIOE);
+	GPIO_Pin_Mode(GPIOE, PIN_3, INPUT);
+	GPIO_Pin_Mode(GPIOE, PIN_4, INPUT);
+
+	GPIO_Resistor_Enable(GPIOE, PIN_3, PULL_UP);
+	GPIO_Resistor_Enable(GPIOE, PIN_4, PULL_UP);
+	EXTI_Config(EXTI3, GPIOE, FALLING_EDGE);
+	EXTI_Config(EXTI4, GPIOE, FALLING_EDGE);
+
+	NVIC_EnableIRQ(EXTI3_IRQn);
+	NVIC_EnableIRQ(EXTI4_IRQn);
+
+	NVIC_SetPriority(EXTI3_IRQn, 0);
+	NVIC_SetPriority(EXTI4_IRQn, 1);
 
 
   /* USER CODE END 2 */
@@ -151,131 +208,133 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 
 
-	// MOTOR
-	//	GPIO_Clock_Enable(GPIOE);
-	//	GPIO_Pin_Mode(GPIOE, PIN_0, OUTPUT);
-	//	GPIO_Pin_Mode(GPIOE, PIN_1, OUTPUT);
-	//	GPIO_Pin_Mode(GPIOE, PIN_2, OUTPUT);
-
-
-
 	while (1) {
 
-		//matriz();
 
-		// MOTOR
-//		GPIO_Write_Pin(GPIOE, PIN_0, LOW);
-//		GPIO_Write_Pin(GPIOE, PIN_1, HIGH);
-//		AtivarModoPWM(GPIOE, GPIO_PIN_2, 2);
-//		Delay_ms(1000);
+
+
+
+
+		// Sobe de 0 até 4095 (12 bits)
+/*
+		for (uint16_t v = 0; v <= 4095; v += 5)
+			  {
+			   DAC_SetValue(DAC_CHANNEL1, v, DAC_RES_12BITS);
+               DAC_SWTrigger(DAC_CHANNEL1);
+               Delay_ms(1);
+			  }
+
+			  // Desce de 4095 até 0
+	   for (uint16_t v = 4095; v > 0; v -= 5)
+	   {
+		   DAC_SetValue(DAC_CHANNEL1, v, DAC_RES_12BITS);
+		   DAC_SWTrigger(DAC_CHANNEL1);
+		   Delay_ms(1);
+	   }
+
+*/
+
+
+
+
+		/*
+		// Leitura de 0 a 4095
+		uint16_t leitura = ADC_GetSingleConversion(ADC1);
+		printf("Valor convertido: %d\n", leitura);
+
+		// Delay_us()
+
+		DAC_SetValue(DAC_CHANNEL1, leitura, DAC_RES_12BITS);
+		DAC_SetValue(DAC_CHANNEL2, 4095 - leitura, DAC_RES_12BITS);
+*/
+
+
+
+
+
+
+//		DAC_SetValue(DAC_CHANNEL1, 2048, DAC_RES_12BITS);
+
+
+
+
+		// MicroServomotor();
+
+
+//		// MOTOR
+//		for(int i = 0; i < 100; i++) {
+//			GPIO_Write_Pin(GPIOE, PIN_4, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_5, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_2, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_0, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_3, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_1, HIGH);
+//			Delay_ms(10);
 //
-//		GPIO_Write_Pin(GPIOE, PIN_0, HIGH);
-//		GPIO_Write_Pin(GPIOE, PIN_1, LOW);
-//		AtivarModoPWM(GPIOE, GPIO_PIN_2, 2);
-//		Delay_ms(1000);
+//			GPIO_Write_Pin(GPIOE, PIN_4, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_5, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_2, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_0, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_3, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_1, HIGH);
+//			Delay_ms(10);
+//
+//			GPIO_Write_Pin(GPIOE, PIN_4, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_5, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_2, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_0, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_3, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_1, LOW);
+//			Delay_ms(10);
+//
+//			GPIO_Write_Pin(GPIOE, PIN_4, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_5, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_2, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_0, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_3, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_1, LOW);
+//			Delay_ms(10);
+//		}
+//
+//		for(int i = 0; i < 50; i++) {
+//			GPIO_Write_Pin(GPIOE, PIN_4, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_5, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_2, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_0, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_3, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_1, LOW);
+//			Delay_ms(10);
+//
+//			GPIO_Write_Pin(GPIOE, PIN_4, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_5, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_2, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_0, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_3, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_1, LOW);
+//			Delay_ms(10);
+//
+//			GPIO_Write_Pin(GPIOE, PIN_4, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_5, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_2, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_0, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_3, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_1, HIGH);
+//			Delay_ms(10);
+//
+//			GPIO_Write_Pin(GPIOE, PIN_4, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_5, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_2, HIGH);
+//			GPIO_Write_Pin(GPIOE, PIN_0, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_3, LOW);
+//			GPIO_Write_Pin(GPIOE, PIN_1, HIGH);
+//			Delay_ms(10);
+//		}
 
-		GPIO_Write_Pin(GPIOD, PIN_4,LOW);
-		GPIO_Write_Pin(GPIOD, PIN_5,LOW);
-		GPIO_Write_Pin(GPIOD, PIN_6,LOW);
-		GPIO_Write_Pin(GPIOD, PIN_7,LOW);
+		// SensorUltrassonico();
+		// MotorDC();
 
-		Delay_ms(1000);
 
-		do {
-			numero = Random_Number();
-		} while (numero != PIN_4 &&
-				numero != PIN_5 &&
-				numero != PIN_6 &&
-				numero != PIN_7);
-		sequencia[tamanho] = numero;
-		tamanho++;
 
-		for(int i = 0; i < tamanho ; i++){
-			Delay_ms(350);
-			GPIO_Write_Pin(GPIOD, sequencia[i],HIGH);
-			Delay_ms(350);
-			GPIO_Write_Pin(GPIOD, sequencia[i],LOW);
-		}
-
-		while(1){
-
-			if (entrada == tamanho){
-				entrada = 0;
-				break;
-			}
-
-			if(!GPIO_Read_Pin(GPIOD,PIN_0)){
-				GPIO_Write_Pin(GPIOD, PIN_4,HIGH);
-				Delay_ms(300);
-				GPIO_Write_Pin(GPIOD, PIN_4,LOW);
-
-				if(sequencia[entrada] != PIN_4){
-					GPIO_Write_Pin(GPIOD, PIN_4,HIGH);
-					GPIO_Write_Pin(GPIOD, PIN_5,HIGH);
-					GPIO_Write_Pin(GPIOD, PIN_6,HIGH);
-					GPIO_Write_Pin(GPIOD, PIN_7,HIGH);
-					Delay_ms(500);
-					entrada = tamanho = 0;				}
-				else{
-					entrada++;
-				}
-
-			}
-
-			if(!GPIO_Read_Pin(GPIOD,PIN_1)){
-				GPIO_Write_Pin(GPIOD, PIN_5,HIGH);
-				Delay_ms(300);
-				GPIO_Write_Pin(GPIOD, PIN_5,LOW);
-
-				if(sequencia[entrada] != PIN_5){
-					GPIO_Write_Pin(GPIOD, PIN_4,HIGH);
-					GPIO_Write_Pin(GPIOD, PIN_5,HIGH);
-					GPIO_Write_Pin(GPIOD, PIN_6,HIGH);
-					GPIO_Write_Pin(GPIOD, PIN_7,HIGH);
-					Delay_ms(500);
-					entrada = tamanho = 0;				}
-				else{
-					entrada++;
-				}
-
-			}
-
-			if(!GPIO_Read_Pin(GPIOD,PIN_2)){
-				GPIO_Write_Pin(GPIOD, PIN_6,HIGH);
-				Delay_ms(300);
-				GPIO_Write_Pin(GPIOD, PIN_6,LOW);
-
-				if(sequencia[entrada] != PIN_6){
-					GPIO_Write_Pin(GPIOD, PIN_4,HIGH);
-					GPIO_Write_Pin(GPIOD, PIN_5,HIGH);
-					GPIO_Write_Pin(GPIOD, PIN_6,HIGH);
-					GPIO_Write_Pin(GPIOD, PIN_7,HIGH);
-					Delay_ms(500);
-					entrada = tamanho = 0;				}
-				else{
-					entrada++;
-				}
-
-			}
-
-			if(!GPIO_Read_Pin(GPIOD,PIN_3)){
-				GPIO_Write_Pin(GPIOD, PIN_7,HIGH);
-				Delay_ms(300);
-				GPIO_Write_Pin(GPIOD, PIN_7,LOW);
-
-				if(sequencia[entrada] != PIN_7){
-					GPIO_Write_Pin(GPIOD, PIN_4,HIGH);
-					GPIO_Write_Pin(GPIOD, PIN_5,HIGH);
-					GPIO_Write_Pin(GPIOD, PIN_6,HIGH);
-					GPIO_Write_Pin(GPIOD, PIN_7,HIGH);
-					Delay_ms(500);
-					entrada = tamanho = 0;				}
-				else{
-					entrada++;
-				}
-
-			}
-		}
 
 
 		//Genius();
@@ -436,6 +495,8 @@ void SystemClock_Config(void)
   }
 }
 
+
+
 /**
   * @brief GPIO Initialization Function
   * @param None
@@ -477,6 +538,41 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 
+// INTERRUPÇÕES
+
+void EXTI3_IRQHandler() {
+	printf("Interrupção em K1\n");
+	Delay_ms(2000);
+	printf("Saindo de K1\n");
+	EXTI_Clear_Pending(EXTI3);
+}
+void EXTI4_IRQHandler() {
+	printf("Interrupção em K0\n");
+	Delay_ms(2000);
+	printf("Saindo de K0\n");
+	EXTI_Clear_Pending(EXTI4);
+}
+void TIM5_IRQHandler(void)
+{
+    if (TIM5->SR & TIM_SR_UIF) // Se houve interrupção por overflow
+    {
+        TIM5->SR &= ~TIM_SR_UIF; // Limpa a flag
+        printf("INTERRUPÇÃO DO TIMER 5: 1s se passou\r\n");
+    }
+}
+
+void EXTI0_IRQHandler(void)
+{
+    EXTI_Clear_Pending(0);
+    printf("INTERRUPÇÃO EXTERNA EM PB0\r\n");
+}
+
+void EXTI1_IRQHandler(void)
+{
+    EXTI_Clear_Pending(1);
+    printf("INTERRUPÇÃO EXTERNA EM PB1\r\n");
+}
+
 void Semaforo() {
 	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 	  HAL_Delay(4000);
@@ -508,17 +604,15 @@ void Despertador(GPIO_TypeDef* porta, uint16_t pino) {
 void AtivarModoPWM(GPIO_TypeDef* porta, uint16_t pino, int velocidade) {
 	for(int i = 0; i < 2000; i += velocidade) {
 		HAL_GPIO_WritePin(porta, pino, GPIO_PIN_RESET);
-		Delay_us(i);
-		HAL_GPIO_WritePin(porta, pino, GPIO_PIN_SET);
 		Delay_us(1999 - i);
+		HAL_GPIO_WritePin(porta, pino, GPIO_PIN_SET);
+		Delay_us(i);
 	}
-	Delay_ms(1000);
-
 	for(int i = 0; i < 2000; i += velocidade) {
 		HAL_GPIO_WritePin(porta, pino, GPIO_PIN_RESET);
-		Delay_us(1999 - i);
-		HAL_GPIO_WritePin(porta, pino, GPIO_PIN_SET);
 		Delay_us(i);
+		HAL_GPIO_WritePin(porta, pino, GPIO_PIN_SET);
+		Delay_us(1999 - i);
 	}
 }
 
@@ -791,14 +885,7 @@ void Genius() {
 				GPIO_Write_Pin(GPIOE, PIN_4, HIGH);
 				Delay_ms(300);
 				GPIO_Write_Pin(GPIOE, PIN_4, LOW);
-				if(sequencia[entrada] != PIN_4) {
-					for(int i = 0; i < 6; i++) {
-						HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_4);
-						HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_5);
-						HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_6);
-						HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_7);
-						Delay_ms(500);
-					}
+
 					entrada = tamanho = 0;
 				} else {
 					entrada++;
@@ -863,7 +950,7 @@ void Genius() {
 			}
 		}
 	}
-}
+
 
 void SensorUltrassonico() {
 	GPIO_Clock_Enable(GPIOE);
@@ -922,108 +1009,61 @@ void SensorUltrassonico() {
 		}
 	}
 }
-void matriz(){
 
-	 GPIO_Clock_Enable(GPIOA);
-	  	  GPIO_Pin_Mode(GPIOA,PIN_0,OUTPUT);
-	  	  GPIO_Pin_Mode(GPIOA,PIN_1,OUTPUT);
-	  	  GPIO_Pin_Mode(GPIOA,PIN_2,OUTPUT);
-	  	  GPIO_Pin_Mode(GPIOA,PIN_3,OUTPUT);
-	  	  GPIO_Pin_Mode(GPIOA,PIN_4,OUTPUT);
-	  	  GPIO_Pin_Mode(GPIOA,PIN_5,OUTPUT);
-	  	  GPIO_Pin_Mode(GPIOA,PIN_6,OUTPUT);
-	  	  GPIO_Pin_Mode(GPIOA,PIN_7,OUTPUT);
-	  	  GPIO_Clock_Enable(GPIOD);
-	  	  GPIO_Pin_Mode(GPIOD,PIN_0,OUTPUT);
-	  	  GPIO_Resistor_Enable(GPIOD,PIN_0,PULL_UP);
-	  	  GPIO_Output_Type(GPIOD,PIN_0,OPEN_DRAIN);		//configura o tipo de saída de um pino de um GPIO
-	  	  GPIO_Pin_Mode(GPIOD,PIN_1,OUTPUT);
-	  	  GPIO_Resistor_Enable(GPIOD,PIN_1,PULL_UP);
-	  	  GPIO_Output_Type(GPIOD,PIN_1,OPEN_DRAIN);
-	  	  GPIO_Pin_Mode(GPIOD,PIN_2,OUTPUT);
-	  	  GPIO_Resistor_Enable(GPIOD,PIN_2,PULL_UP);
-	  	  GPIO_Output_Type(GPIOD,PIN_2,OPEN_DRAIN);
-	  	  GPIO_Pin_Mode(GPIOD,PIN_3,OUTPUT);
-	  	  GPIO_Resistor_Enable(GPIOD,PIN_3,PULL_UP);
-	  	  GPIO_Output_Type(GPIOD,PIN_3,OPEN_DRAIN);
-	  	  GPIO_Pin_Mode(GPIOD,PIN_4,INPUT);
-	  	  GPIO_Resistor_Enable(GPIOD,PIN_4,PULL_UP);
-	  	  GPIO_Pin_Mode(GPIOD,PIN_5,INPUT);
-	  	  GPIO_Resistor_Enable(GPIOD,PIN_5,PULL_UP);
-	  	  GPIO_Pin_Mode(GPIOD,PIN_6,INPUT);
-	  	  GPIO_Resistor_Enable(GPIOD,PIN_6,PULL_UP);
-	  	  GPIO_Pin_Mode(GPIOD,PIN_7,INPUT);
-	  	  GPIO_Resistor_Enable(GPIOD,PIN_7,PULL_UP);
-	  	 unsigned int keymap[4][4] = {
-	  	   {0b0000110,0b1011011,0b1001111,0b1110111},
-	  	   {0b1100110,0b1101101,0b1111101,0b1111100},
-	  	   {0b0000111,0b1111111,0b1101111,0b0111001},
-	  	   {0b1110110,0b0111111,0b1001001,0b1011110}
-	  	 };
-
-
-
-	uint8_t posicao1=4,posicao2=8;
-		  	  for( uint8_t i = 0; i < 4; i++) {
-		  		 GPIO_Write_Pin(GPIOD,i,LOW);
-		  		 Delay_ms(20);
-		  		 for( uint8_t j = 4; j < 8; j++){
-		  			 if(!GPIO_Read_Pin(GPIOD,j)){
-		  				 posicao1=i;
-		  				 posicao2= j; //Estava posicao2=j-4
-		  				 Delay_ms(20);
-		  				 break;
-		  			 }
-		  		 }
-		  		 GPIO_Write_Pin(GPIOD,i,HIGH);
-		  		 if(posicao1<4 && posicao2<8){
-		  		   break;
-		  		}
-		  	  }
-		  	  if(posicao1<4 && posicao2<8){
-		  		  GPIO_Write_Port(GPIOA,keymap[posicao1][posicao2-4]);
-		  	  }
-
-}
-
-void SensorUltrassonico2() {
+void MotorDC() {
 	GPIO_Clock_Enable(GPIOE);
-	GPIO_Pin_Mode(GPIOE, PIN_0, INPUT);		// ECHO
-	GPIO_Pin_Mode(GPIOE, PIN_1, OUTPUT);	// TRIG
-	GPIO_Write_Pin(GPIOE, PIN_1, LOW);
-	GPIO_Pin_Mode(GPIOE, PIN_2, OUTPUT);	// BUZZER
+	GPIO_Pin_Mode(GPIOE, PIN_0, OUTPUT);
+	GPIO_Pin_Mode(GPIOE, PIN_1, OUTPUT);
+	GPIO_Pin_Mode(GPIOE, PIN_2, OUTPUT);
 
-	unsigned int distancia = 0;
-	int tempo = 0;
+	Delay_ms(1000);
 
 	while (1) {
-
-		// Enviando pulso
-		Delay_ms(10);
+		// Mudando sentido e ativando PWM
+		GPIO_Write_Pin(GPIOE, PIN_0, LOW);
 		GPIO_Write_Pin(GPIOE, PIN_1, HIGH);
-		Delay_us(10);
-		GPIO_Write_Pin(GPIOE, PIN_1, LOW);
+		AtivarModoPWM(GPIOE, GPIO_PIN_2, 2);
 
-		// Iniciando contagem
-		while(!GPIO_Read_Pin(GPIOE, PIN_0));
-		tempo = 0;
-		while(GPIO_Read_Pin(GPIOE, PIN_0)) {
-			Delay_us(1);
-			tempo++;
+		// Mudando sentido e ativando PWM
+		GPIO_Write_Pin(GPIOE, PIN_0, HIGH);
+		GPIO_Write_Pin(GPIOE, PIN_1, LOW);
+		AtivarModoPWM(GPIOE, GPIO_PIN_2, 2);
+	}
+}
+
+void MicroServomotor() {
+	GPIO_Clock_Enable(GPIOE);
+	GPIO_Pin_Mode(GPIOE, PIN_0, OUTPUT);			// Pino do motor
+	GPIO_Pin_Mode(GPIOE, PIN_2, INPUT);				// Botão
+	GPIO_Pin_Mode(GPIOE, PIN_3, INPUT);				// Botão
+	GPIO_Resistor_Enable(GPIOE, PIN_2, PULL_UP);
+	GPIO_Resistor_Enable(GPIOE, PIN_3, PULL_UP);
+
+	contador = 500;
+	while (1) {
+
+		if(!GPIO_Read_Pin(GPIOE, PIN_3)) {
+			GPIO_Write_Pin(GPIOE, PIN_0, HIGH);
+			Delay_us(contador);
+			GPIO_Write_Pin(GPIOE, PIN_0, LOW);
+			Delay_us(20000 - contador);
+			if(contador < 2500) {
+				contador += 10;
+			}
 		}
 
-		// Calculando distância
-		distancia = tempo/58;
-
-		// Acionando LED
-		if(distancia > 50) {
-			GPIO_Write_Pin(GPIOE, PIN_2, LOW);
-		} else {
-			GPIO_Write_Pin(GPIOE, PIN_2, HIGH);
-			Delay_ms(distancia * 10);
+		if(!GPIO_Read_Pin(GPIOE, PIN_2)) {
+			GPIO_Write_Pin(GPIOE, PIN_0, HIGH);
+			Delay_us(contador);
+			GPIO_Write_Pin(GPIOE, PIN_0, LOW);
+			Delay_us(20000 - contador);
+			if(contador > 500) {
+				contador -= 10;
+			}
 		}
 	}
 }
+
 
 /* USER CODE END 4 */
 
